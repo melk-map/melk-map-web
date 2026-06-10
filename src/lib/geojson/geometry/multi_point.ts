@@ -1,0 +1,70 @@
+import * as z from "zod";
+import {
+	GeoJSONGeometryBaseSchema,
+	type GeoJSONGeometryBaseSchemaShape,
+} from "./helper/base";
+import {
+	GeoJSON2DPositionSchema,
+	GeoJSON3DPositionSchema,
+	type GeoJSONAnyPosition,
+	GeoJSONPositionSchema,
+} from "./position";
+import { GeoJSONGeometryType, GeoJSONGeometryTypeSchema } from "./type";
+import {
+	getInvalidBBoxIssue,
+	validBBoxForPositionList,
+} from "./validation/bbox";
+import {
+	getInvalidDimensionIssue,
+	validDimensionsForPositionList,
+} from "./validation/dimension";
+
+export type GeoJSONMultiPointGenericSchemaType<P extends GeoJSONAnyPosition> =
+	z.ZodObject<
+		GeoJSONGeometryBaseSchemaShape<P> & {
+			type: z.ZodLiteral<typeof GeoJSONGeometryType.MultiPoint>;
+			coordinates: z.ZodArray<z.ZodType<P>>;
+		}
+	>;
+
+export const GeoJSONMultiPointGenericSchema = <P extends GeoJSONAnyPosition>(
+	positionSchema: z.ZodType<P>,
+): GeoJSONMultiPointGenericSchemaType<P> =>
+	z
+		.looseObject({
+			...GeoJSONGeometryBaseSchema(positionSchema).shape,
+			type: z.literal(GeoJSONGeometryTypeSchema.enum.MultiPoint),
+			// We allow an empty coordinates array
+			// > GeoJSON processors MAY interpret Geometry objects with empty "coordinates"
+			//   arrays as null objects. (RFC 7946, section 3.1)
+			coordinates: z.array(positionSchema),
+		})
+		.check((ctx) => {
+			// Skip remaining checks if coordinates empty
+			if (!ctx.value.coordinates.length) {
+				return;
+			}
+			if (!validDimensionsForPositionList(ctx.value)) {
+				ctx.issues.push(getInvalidDimensionIssue(ctx));
+				return;
+			}
+			if (!validBBoxForPositionList(ctx.value)) {
+				ctx.issues.push(getInvalidBBoxIssue(ctx));
+				return;
+			}
+		});
+
+export const GeoJSONMultiPointSchema = GeoJSONMultiPointGenericSchema(
+	GeoJSONPositionSchema,
+);
+export type GeoJSONMultiPoint = z.infer<typeof GeoJSONMultiPointSchema>;
+
+export const GeoJSON2DMultiPointSchema = GeoJSONMultiPointGenericSchema(
+	GeoJSON2DPositionSchema,
+);
+export type GeoJSON2DMultiPoint = z.infer<typeof GeoJSON2DMultiPointSchema>;
+
+export const GeoJSON3DMultiPointSchema = GeoJSONMultiPointGenericSchema(
+	GeoJSON3DPositionSchema,
+);
+export type GeoJSON3DMultiPoint = z.infer<typeof GeoJSON3DMultiPointSchema>;
