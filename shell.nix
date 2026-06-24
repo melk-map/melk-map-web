@@ -7,10 +7,10 @@ pkgs.mkShell {
     nodejs
     corepack
     prettierd
-    nodePackages.eslint_d
-    nodePackages.svelte-language-server
-    nodePackages.typescript-language-server
-    nodePackages.bash-language-server
+    eslint_d
+    svelte-language-server
+    typescript-language-server
+    bash-language-server
     vscode-langservers-extracted
     tailwindcss-language-server
     nil
