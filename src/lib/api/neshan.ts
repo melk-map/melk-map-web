@@ -1,13 +1,13 @@
 import axios from "axios";
 import type { Point } from "./types";
 import { fromError } from "zod-validation-error";
-import { PUBLIC_NESHAN_API_KEY } from "$env/static/public";
+// import { PUBLIC_NESHAN_API_KEY } from "$env/static/public";
 
 const neshanAPIClient = axios.create({
 	baseURL: "https://api.neshan.org/",
 	headers: {
 		"Content-Type": "application/json",
-		"Api-Key": PUBLIC_NESHAN_API_KEY,
+		//"Api-Key": PUBLIC_NESHAN_API_KEY,
 	},
 });
 
