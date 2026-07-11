@@ -17,26 +17,21 @@
 
 	let { coordinates }: Props = $props();
 
-	let map: Map | undefined = $state();
-	let mapContainer: HTMLElement | undefined = $state();
-	let h3Resolution: 6 | 7 | 8 = $state(8);
-
-	$effect(() => {
-		if (map) {
-			map.flyTo({ center: coordinates, zoom: 14 });
-		}
-	});
-
+	const DEFAULT_ZOOM = 10;
 	const MIN_ZOOM = 4;
 	const MAX_ZOOM = 20;
-	const H3_RES_8_MIN_ZOOM = 14;
+	const H3_RES_9_MIN_ZOOM = 14;
+	const H3_RES_8_MIN_ZOOM = 13.5;
 	const H3_RES_7_MIN_ZOOM = 12;
 
-	function zoomToResolution(zoom: number) {
-		// const minResolution = 4;
-		// const maxResolution = 8;
+	let map: Map | undefined = $state();
+	let mapContainer: HTMLElement | undefined = $state();
+	let h3Resolution: 6 | 7 | 8 | 9 = $state(zoomToResolution(DEFAULT_ZOOM));
 
-		if (zoom > H3_RES_8_MIN_ZOOM) {
+	function zoomToResolution(zoom: number) {
+		if (zoom > H3_RES_9_MIN_ZOOM) {
+			return 9;
+		} else if (zoom >= H3_RES_8_MIN_ZOOM && zoom < H3_RES_9_MIN_ZOOM) {
 			return 8;
 		} else if (zoom >= H3_RES_7_MIN_ZOOM && zoom < H3_RES_8_MIN_ZOOM) {
 			return 7;
@@ -71,7 +66,7 @@
 			attributionControl: false,
 			minZoom: MIN_ZOOM,
 			maxZoom: MAX_ZOOM,
-			zoom: 10,
+			zoom: DEFAULT_ZOOM,
 		});
 
 		// add openstreetmap attributions back
@@ -80,7 +75,7 @@
 			"bottom-left",
 		);
 
-		const cellCache = new SvelteMap<H3Index, GeoJSON.Feature>();
+		const cellCache = new SvelteMap<H3Index, GeoJSON.Feature | null>();
 
 		const propertiesSourceID = "properties";
 		const propertiesClusterLayerID = `${propertiesSourceID}-clusters-layer`;
@@ -280,14 +275,22 @@
 				(cell) => !cellCache.has(cell),
 			);
 
-			const featuresInBounds = await api.map.fetchLocationsInH3Bounds(
-				filteredCells,
-				h3Resolution,
-			);
-			console.log(featuresInBounds);
+			// make sure all filtered cells are marked as null in the cache
+			// to avoid fetching them again
+			for (const cell of filteredCells) {
+				cellCache.set(cell, null);
+			}
 
-			for (const feature of featuresInBounds.Features) {
-				cellCache.set(feature.properties.h3_index, feature);
+			if (filteredCells.length != 0) {
+				const featuresInBounds = await api.map.fetchLocationsInH3Bounds(
+					filteredCells,
+					h3Resolution,
+				);
+				console.log(featuresInBounds);
+
+				for (const feature of featuresInBounds.Features) {
+					cellCache.set(feature.properties.h3_index, feature);
+				}
 			}
 
 			const features: GeoJSON.Feature[] = [];
@@ -308,21 +311,6 @@
 					features,
 				});
 			}
-
-			/*
-			const radius = getHexagonEdgeLengthAvg(8, UNITS.km);
-
-			circleSource!.setData({
-				type: "FeatureCollection",
-				features: [...circleCells].map((cell) => {
-					const center = cellToLatLng(cell);
-					return circle([center[1], center[0]], radius, {
-						steps: 64,
-						units: "kilometers",
-					});
-				}),
-			});
-			*/
 		});
 	});
 </script>
