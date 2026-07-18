@@ -20,13 +20,27 @@
 	const DEFAULT_ZOOM = 10;
 	const MIN_ZOOM = 4;
 	const MAX_ZOOM = 20;
-	const H3_RES_9_MIN_ZOOM = 14;
+	const MIN_H3_RES = 6;
+	const MAX_H3_RES = 9;
+	const H3_RES_9_MIN_ZOOM = 15;
 	const H3_RES_8_MIN_ZOOM = 13.5;
-	const H3_RES_7_MIN_ZOOM = 12;
+	const H3_RES_7_MIN_ZOOM = 12.5;
 
 	let map: Map | undefined = $state();
 	let mapContainer: HTMLElement | undefined = $state();
 	let h3Resolution: 6 | 7 | 8 | 9 = $state(zoomToResolution(DEFAULT_ZOOM));
+	let h3CircleRadius: number = $derived.by(() => {
+		switch (h3Resolution) {
+			case 9:
+				return 250;
+			case 8:
+				return 125;
+			case 7:
+				return 62.5;
+			case 6:
+				return 31.25;
+		}
+	})
 
 	function zoomToResolution(zoom: number) {
 		if (zoom > H3_RES_9_MIN_ZOOM) {
@@ -125,7 +139,7 @@
 						40,
 					],
 				},
-				minzoom: H3_RES_8_MIN_ZOOM,
+				minzoom: H3_RES_9_MIN_ZOOM,
 			});
 
 			map!.addLayer({
@@ -138,7 +152,7 @@
 					"text-font": ["Noto Sans Regular"],
 					"text-size": 12,
 				},
-				minzoom: H3_RES_8_MIN_ZOOM,
+				minzoom: H3_RES_9_MIN_ZOOM,
 			});
 
 			map!.addLayer({
@@ -152,79 +166,7 @@
 					"circle-stroke-width": 1,
 					"circle-stroke-color": "#fff",
 				},
-				minzoom: H3_RES_8_MIN_ZOOM,
-			});
-
-			map!.on("click", h3ClustersLayerID, async (e) => {
-				const features = map!.queryRenderedFeatures(e.point, {
-					layers: [h3ClustersLayerID],
-				});
-
-				let zoom: number;
-
-				switch (h3Resolution) {
-					case 7:
-						zoom = H3_RES_8_MIN_ZOOM;
-						break;
-					default:
-						zoom = H3_RES_7_MIN_ZOOM;
-						break;
-				}
-
-				overrideMove = true;
-				map!.easeTo({
-					center: features[0].geometry.coordinates,
-					zoom: zoom + 0.01,
-				});
-				overrideMove = false;
-			});
-
-			map!.addSource(h3SourceID, {
-				type: "geojson",
-				data: {
-					type: "FeatureCollection",
-					features: [],
-				},
-				maxzoom: H3_RES_8_MIN_ZOOM,
-			});
-
-			map!.addLayer({
-				id: h3ClustersLayerID,
-				type: "circle",
-				source: h3SourceID,
-				filter: ["has", "density_index"],
-				paint: {
-					"circle-color": "#ff0000",
-					"circle-radius": ["get", "radius"],
-				},
-				maxzoom: H3_RES_8_MIN_ZOOM,
-			});
-
-			map!.addLayer({
-				id: h3ClusterCountLayerID,
-				type: "symbol",
-				source: h3SourceID,
-				filter: ["has", "density_index"],
-				layout: {
-					"text-field": "{density_index}",
-					"text-font": ["Noto Sans Regular"],
-					"text-size": 12,
-				},
-				maxzoom: H3_RES_8_MIN_ZOOM,
-			});
-
-			map!.addLayer({
-				id: h3UnclusteredLayerID,
-				type: "circle",
-				source: h3SourceID,
-				filter: ["!", ["has", "density_index"]],
-				paint: {
-					"circle-color": "#11b4da",
-					"circle-radius": 4,
-					"circle-stroke-width": 1,
-					"circle-stroke-color": "#fff",
-				},
-				maxzoom: H3_RES_8_MIN_ZOOM,
+				minzoom: H3_RES_9_MIN_ZOOM,
 			});
 
 			map!.on("click", propertiesClusterLayerID, async (e) => {
@@ -239,6 +181,83 @@
 				map!.easeTo({
 					center: features[0].geometry.coordinates,
 					zoom,
+				});
+				overrideMove = false;
+			});
+
+			map!.addSource(h3SourceID, {
+				type: "geojson",
+				data: {
+					type: "FeatureCollection",
+					features: [],
+				},
+				maxzoom: H3_RES_9_MIN_ZOOM,
+			});
+
+			map!.addLayer({
+				id: h3ClustersLayerID,
+				type: "circle",
+				source: h3SourceID,
+				filter: ["has", "density_index"],
+				paint: {
+					"circle-color": "#ff0000",
+					"circle-radius": h3CircleRadius /*["get", "radius"]*/,
+				},
+				maxzoom: H3_RES_9_MIN_ZOOM,
+			});
+
+			map!.addLayer({
+				id: h3ClusterCountLayerID,
+				type: "symbol",
+				source: h3SourceID,
+				filter: ["has", "density_index"],
+				layout: {
+					"text-field": "{density_index}",
+					"text-font": ["Noto Sans Regular"],
+					"text-size": 12,
+				},
+				maxzoom: H3_RES_9_MIN_ZOOM,
+			});
+
+			map!.addLayer({
+				id: h3UnclusteredLayerID,
+				type: "circle",
+				source: h3SourceID,
+				filter: ["!", ["has", "density_index"]],
+				paint: {
+					"circle-color": "#11b4da",
+					"circle-radius": 4,
+					"circle-stroke-width": 1,
+					"circle-stroke-color": "#fff",
+				},
+				maxzoom: H3_RES_9_MIN_ZOOM,
+			});
+
+			map!.on("click", h3ClustersLayerID, async (e) => {
+				const features = map!.queryRenderedFeatures(e.point, {
+					layers: [h3ClustersLayerID],
+				});
+
+				let zoom: number;
+
+				switch (h3Resolution) {
+					case 6:
+						zoom = H3_RES_7_MIN_ZOOM;
+						break;
+					case 7:
+						zoom = H3_RES_8_MIN_ZOOM;
+						break;
+					case 8:
+						zoom = H3_RES_9_MIN_ZOOM;
+						break;
+					default:
+						return;
+				}
+
+				overrideMove = true;
+				map!.easeTo({
+					center: features[0].geometry.coordinates,
+					zoom: zoom + 0.01,
 				});
 				overrideMove = false;
 			});
@@ -286,7 +305,6 @@
 					filteredCells,
 					h3Resolution,
 				);
-				console.log(featuresInBounds);
 
 				for (const feature of featuresInBounds.Features) {
 					cellCache.set(feature.properties.h3_index, feature);
@@ -300,7 +318,7 @@
 				if (feature) features.push(feature);
 			}
 
-			if (h3Resolution != 8) {
+			if (h3Resolution != MAX_H3_RES) {
 				h3Source!.setData({
 					type: "FeatureCollection",
 					features,
