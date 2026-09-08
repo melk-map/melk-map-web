@@ -16,6 +16,7 @@ async function fetchLocationsInH3Bounds(
 ) {
 	const compactedCells = compactCells(h3Cells);
 
+	// TODO: find a way to avoid sending resolution
 	const response = await mapAPIClient.post("/h3-set", {
 		h3_cells: compactedCells,
 		resolution,

@@ -1,12 +1,8 @@
-import {
-	GeoJSONFeatureCollectionGenericSchema,
-	GeoJSONPointSchema,
-	GeoJSONPositionSchema,
-} from "$lib/geojson";
 import axios from "axios";
 import type { Point } from "./types";
 import { fromError } from "zod-validation-error";
 import z from "zod";
+import { GeoJSONFeatureCollectionGenericSchema, GeoJSONPointSchema, GeoJSONPositionSchema } from "zod-geojson";
 
 const nominatimAPIClient = axios.create({
 	baseURL: "https://nominatim.openstreetmap.org/",

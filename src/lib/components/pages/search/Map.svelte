@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import maplibregl, { type Map } from "maplibre-gl";
+	import { addProtocol, AttributionControl, GeoJSONSource, Map, setRTLTextPlugin, type Feature } from "maplibre-gl";
 	import "maplibre-gl/dist/maplibre-gl.css";
 	import { Protocol } from "pmtiles";
 	import {
@@ -40,7 +40,7 @@
 			case 6:
 				return 31.25;
 		}
-	})
+	});
 
 	function zoomToResolution(zoom: number) {
 		if (zoom > H3_RES_9_MIN_ZOOM) {
@@ -66,14 +66,14 @@
 		if (!mapContainer) return;
 
 		let protocol = new Protocol();
-		maplibregl.addProtocol("pmtiles", protocol.tile);
+		addProtocol("pmtiles", protocol.tile);
 
-		maplibregl.setRTLTextPlugin(
+		setRTLTextPlugin(
 			"https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.3.0/dist/mapbox-gl-rtl-text.js",
 			true, // Lazy load the plugin
 		);
 
-		map = new maplibregl.Map({
+		map = new Map({
 			container: mapContainer,
 			style: "/map/styles/dark.json",
 			center: coordinates,
@@ -85,18 +85,18 @@
 
 		// add openstreetmap attributions back
 		map.addControl(
-			new maplibregl.AttributionControl({ compact: true }),
+			new AttributionControl({ compact: true }),
 			"bottom-left",
 		);
 
-		const cellCache = new SvelteMap<H3Index, GeoJSON.Feature | null>();
+		const cellCache = new SvelteMap<H3Index, Feature | null>();
 
 		const propertiesSourceID = "properties";
 		const propertiesClusterLayerID = `${propertiesSourceID}-clusters-layer`;
 		const propertiesClusterCountLayerID = `${propertiesSourceID}-cluster-count-layer`;
 		const propertiesUnclusteredLayerID = `${propertiesSourceID}-unclustered-layer`;
 		let propertiesSource = map.getSource(propertiesSourceID) as
-			| maplibregl.GeoJSONSource
+			| GeoJSONSource
 			| undefined;
 
 		const h3SourceID = "h3";
@@ -104,7 +104,7 @@
 		const h3ClusterCountLayerID = `${h3SourceID}-cluster-count-layer`;
 		const h3UnclusteredLayerID = `${h3SourceID}-unclustered-layer`;
 		let h3Source = map.getSource(h3SourceID) as
-			| maplibregl.GeoJSONSource
+			| GeoJSONSource
 			| undefined;
 
 		let overrideMove = false;
@@ -311,7 +311,7 @@
 				}
 			}
 
-			const features: GeoJSON.Feature[] = [];
+			const features: Feature[] = [];
 
 			for (const cell of h3Cells) {
 				const feature = cellCache.get(cell);
