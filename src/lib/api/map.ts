@@ -3,7 +3,7 @@ import axios from "axios";
 import { compactCells, type H3Index } from "h3-js";
 
 const mapAPIClient = axios.create({
-	baseURL: `http://${PUBLIC_API_URL}/properties`,
+	baseURL: `https://${PUBLIC_API_URL}/properties`,
 	headers: {
 		"Content-Type": "application/json",
 	},

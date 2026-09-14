@@ -2,7 +2,7 @@ import axios from "axios";
 import { PUBLIC_API_URL } from "$env/static/public";
 
 const propertyAPIClient = axios.create({
-	baseURL: `http://${PUBLIC_API_URL}/properties`,
+	baseURL: `https://${PUBLIC_API_URL}/properties`,
 	headers: {
 		"Content-Type": "application/json",
 	},
