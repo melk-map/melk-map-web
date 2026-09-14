@@ -101,7 +101,7 @@
 				sources: {
 					protomaps: {
 						type: "vector",
-						url: `pmtiles://https://${PUBLIC_API_URL}/tiles/map.pmtiles`,
+						url: `pmtiles://https://${PUBLIC_API_URL}/tiles/`,
 						attribution:
 							'<a href="https://protomaps.com">Protomaps</a> © <a href="https://openstreetmap.org">OpenStreetMap</a>',
 					},
