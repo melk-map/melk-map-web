@@ -1,36 +1,33 @@
 import axios from "axios";
+import { PUBLIC_API_URL } from "$env/static/public";
 
 const propertyAPIClient = axios.create({
-	baseURL: "http://localhost:1234/properties",
+	baseURL: `http://${PUBLIC_API_URL}/properties`,
 	headers: {
 		"Content-Type": "application/json",
 	},
 });
 
 interface PropertyResponse {
+	has_prev_page: boolean;
+	next_page_token: string;
 	properties: Property[];
 }
 
-interface Property {
+export interface Property {
 	title: string;
 	latitude: number;
 	longitude: number;
-	h3_resolution_4: string;
-	h3_resolution_6: string;
-	h3_resolution_8: string;
-	location_type: string;
+	area: number;
+	price: number;
+	bedrooms: number;
+	restrooms: number;
 }
 
-async function h3CellToProperties(h3Cell: string): Promise<PropertyResponse> {
-	const response = await propertyAPIClient.get<PropertyResponse>(
-		`/h3?cell=${h3Cell}`,
-	);
+async function getProperties(pageToken?: string): Promise<PropertyResponse> {
+	const path = pageToken ? `/?t_prop_pag=${pageToken}` : "/"
+	const response = await propertyAPIClient.get<PropertyResponse>(path);
 	return response.data;
 }
 
-async function getAllProperties(): Promise<PropertyResponse> {
-	const response = await propertyAPIClient.get<PropertyResponse>(`/all`);
-	return response.data;
-}
-
-export default { h3CellToProperties, getAllProperties };
+export default { getProperties };

@@ -4,7 +4,7 @@
         "protomaps": {
             "type": "vector",
             "attribution": "<a href=\"https://github.com/protomaps/basemaps\">Protomaps</a> © <a href=\"https://openstreetmap.org\">OpenStreetMap</a>",
-            "url": "pmtiles://http://localhost:5173/map/tiles/iran_20260223.pmtiles"
+            "url": "pmtiles://http://api.melk-map.hexname.com:1234/tiles/"
         }
     },
     "layers": [

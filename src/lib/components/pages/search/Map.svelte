@@ -20,47 +20,53 @@
 	const DEFAULT_ZOOM = 10;
 	const MIN_ZOOM = 4;
 	const MAX_ZOOM = 20;
-	const MIN_H3_RES = 6;
+	const MIN_H3_RES = 3;
 	const MAX_H3_RES = 9;
-	const H3_RES_9_MIN_ZOOM = 15;
-	const H3_RES_8_MIN_ZOOM = 13.5;
-	const H3_RES_7_MIN_ZOOM = 12.5;
+	const H3_RES_9_MIN_ZOOM = 14;
+	const H3_RES_7_MIN_ZOOM = 12;
+	const H3_RES_5_MIN_ZOOM = 10;
+
+	const propertiesSourceID = "properties";
+	const propertiesClusterLayerID = `${propertiesSourceID}-clusters-layer`;
+	const propertiesClusterCountLayerID = `${propertiesSourceID}-cluster-count-layer`;
+	const propertiesUnclusteredLayerID = `${propertiesSourceID}-unclustered-layer`;
+	const h3SourceID = "h3";
+	const h3ClustersLayerID = `${h3SourceID}-clusters-layer`;
+	const h3ClusterCountLayerID = `${h3SourceID}-cluster-count-layer`;
+	const h3UnclusteredLayerID = `${h3SourceID}-unclustered-layer`;
 
 	let map: Map | undefined = $state();
+	let mapLoaded = $state(false);
 	let mapContainer: HTMLElement | undefined = $state();
-	let h3Resolution: 6 | 7 | 8 | 9 = $state(zoomToResolution(DEFAULT_ZOOM));
+	let zoom: number = $state(DEFAULT_ZOOM)
+	let h3Resolution: 3 | 5 | 7 | 9 = $derived.by(() => {
+		if (zoom > H3_RES_9_MIN_ZOOM) {
+			return 9;
+		} else if (zoom >= H3_RES_7_MIN_ZOOM && zoom < H3_RES_9_MIN_ZOOM) {
+			return 7;
+		} else if (zoom >= H3_RES_5_MIN_ZOOM && zoom < H3_RES_9_MIN_ZOOM) {
+			return 5;
+		} else {
+			return 3;
+		}
+	});
 	let h3CircleRadius: number = $derived.by(() => {
 		switch (h3Resolution) {
 			case 9:
-				return 250;
-			case 8:
-				return 125;
+				return 70;
 			case 7:
-				return 62.5;
-			case 6:
-				return 31.25;
+				return 35;
+			case 5:
+				return 50;
+			case 3:
+				return 50;
 		}
 	});
 
-	function zoomToResolution(zoom: number) {
-		if (zoom > H3_RES_9_MIN_ZOOM) {
-			return 9;
-		} else if (zoom >= H3_RES_8_MIN_ZOOM && zoom < H3_RES_9_MIN_ZOOM) {
-			return 8;
-		} else if (zoom >= H3_RES_7_MIN_ZOOM && zoom < H3_RES_8_MIN_ZOOM) {
-			return 7;
-		} else {
-			return 6;
-		}
-
-		/*
-		return Math.floor(
-			((zoom - minZoom) / (maxZoom - minZoom)) *
-				((maxZoom - minZoom) / (maxResolution - minResolution)) +
-				minResolution,
-		);
-		*/
-	}
+	$effect(() => {
+		if (!map || !mapLoaded) return;
+		map.setPaintProperty(h3ClustersLayerID, "circle-radius", h3CircleRadius);
+	});
 
 	onMount(() => {
 		if (!mapContainer) return;
@@ -75,7 +81,7 @@
 
 		map = new Map({
 			container: mapContainer,
-			style: "/map/styles/dark.json",
+			style: "/map/styles/light.json",
 			center: coordinates,
 			attributionControl: false,
 			minZoom: MIN_ZOOM,
@@ -91,18 +97,10 @@
 
 		const cellCache = new SvelteMap<H3Index, Feature | null>();
 
-		const propertiesSourceID = "properties";
-		const propertiesClusterLayerID = `${propertiesSourceID}-clusters-layer`;
-		const propertiesClusterCountLayerID = `${propertiesSourceID}-cluster-count-layer`;
-		const propertiesUnclusteredLayerID = `${propertiesSourceID}-unclustered-layer`;
 		let propertiesSource = map.getSource(propertiesSourceID) as
 			| GeoJSONSource
 			| undefined;
 
-		const h3SourceID = "h3";
-		const h3ClustersLayerID = `${h3SourceID}-clusters-layer`;
-		const h3ClusterCountLayerID = `${h3SourceID}-cluster-count-layer`;
-		const h3UnclusteredLayerID = `${h3SourceID}-unclustered-layer`;
 		let h3Source = map.getSource(h3SourceID) as
 			| GeoJSONSource
 			| undefined;
@@ -110,6 +108,7 @@
 		let overrideMove = false;
 
 		map.on("load", async () => {
+			mapLoaded = true
 			if (map) map.resize();
 
 			map!.addSource(propertiesSourceID, {
@@ -238,16 +237,14 @@
 					layers: [h3ClustersLayerID],
 				});
 
-				let zoom: number;
-
 				switch (h3Resolution) {
-					case 6:
+					case 3:
+						zoom = H3_RES_5_MIN_ZOOM;
+						break;
+					case 5:
 						zoom = H3_RES_7_MIN_ZOOM;
 						break;
 					case 7:
-						zoom = H3_RES_8_MIN_ZOOM;
-						break;
-					case 8:
 						zoom = H3_RES_9_MIN_ZOOM;
 						break;
 					default:
@@ -270,6 +267,8 @@
 		map.on("moveend", async () => {
 			if (overrideMove) return;
 
+			zoom = map!.getZoom()
+
 			const boundaries = map!.getBounds();
 			const sw = boundaries.getSouthWest();
 			const ne = boundaries.getNorthEast();
@@ -280,8 +279,6 @@
 				[sw.lng, ne.lat],
 				[sw.lng, sw.lat],
 			];
-
-			h3Resolution = zoomToResolution(map!.getZoom());
 
 			const h3Cells = polygonToCellsExperimental(
 				polygon,
