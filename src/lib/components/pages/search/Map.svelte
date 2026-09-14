@@ -1,6 +1,13 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { addProtocol, AttributionControl, GeoJSONSource, Map, setRTLTextPlugin, type Feature } from "maplibre-gl";
+	import {
+		addProtocol,
+		AttributionControl,
+		GeoJSONSource,
+		Map,
+		setRTLTextPlugin,
+		type Feature,
+	} from "maplibre-gl";
 	import "maplibre-gl/dist/maplibre-gl.css";
 	import { Protocol } from "pmtiles";
 	import {
@@ -10,6 +17,8 @@
 	} from "h3-js";
 	import api from "$lib/api";
 	import { SvelteMap } from "svelte/reactivity";
+	import { layers, namedFlavor } from "@protomaps/basemaps";
+	import { PUBLIC_API_URL, PUBLIC_APP_URL } from "$env/static/public";
 
 	interface Props {
 		coordinates: [number, number];
@@ -38,7 +47,7 @@
 	let map: Map | undefined = $state();
 	let mapLoaded = $state(false);
 	let mapContainer: HTMLElement | undefined = $state();
-	let zoom: number = $state(DEFAULT_ZOOM)
+	let zoom: number = $state(DEFAULT_ZOOM);
 	let h3Resolution: 3 | 5 | 7 | 9 = $derived.by(() => {
 		if (zoom > H3_RES_9_MIN_ZOOM) {
 			return 9;
@@ -65,7 +74,11 @@
 
 	$effect(() => {
 		if (!map || !mapLoaded) return;
-		map.setPaintProperty(h3ClustersLayerID, "circle-radius", h3CircleRadius);
+		map.setPaintProperty(
+			h3ClustersLayerID,
+			"circle-radius",
+			h3CircleRadius,
+		);
 	});
 
 	onMount(() => {
@@ -81,7 +94,20 @@
 
 		map = new Map({
 			container: mapContainer,
-			style: "/map/styles/light.json",
+			style: {
+				version: 8,
+				sprite: `https://${PUBLIC_APP_URL}/map/basemaps-assets/sprites/v4/dark`,
+				glyphs: `https://${PUBLIC_APP_URL}/map/basemaps-assets/fonts/{fontstack}/{range}.pbf`,
+				sources: {
+					protomaps: {
+						type: "vector",
+						url: `pmtiles://https://${PUBLIC_API_URL}/tiles/map.pmtiles`,
+						attribution:
+							'<a href="https://protomaps.com">Protomaps</a> © <a href="https://openstreetmap.org">OpenStreetMap</a>',
+					},
+				},
+				layers: layers("protomaps", namedFlavor("light")), // Available themes: "light", "dark", "white", "grayscale"
+			},
 			center: coordinates,
 			attributionControl: false,
 			minZoom: MIN_ZOOM,
@@ -98,17 +124,14 @@
 		const cellCache = new SvelteMap<H3Index, Feature | null>();
 
 		let propertiesSource = map.getSource(propertiesSourceID) as
-			| GeoJSONSource
-			| undefined;
+			GeoJSONSource | undefined;
 
-		let h3Source = map.getSource(h3SourceID) as
-			| GeoJSONSource
-			| undefined;
+		let h3Source = map.getSource(h3SourceID) as GeoJSONSource | undefined;
 
 		let overrideMove = false;
 
 		map.on("load", async () => {
-			mapLoaded = true
+			mapLoaded = true;
 			if (map) map.resize();
 
 			map!.addSource(propertiesSourceID, {
@@ -267,7 +290,7 @@
 		map.on("moveend", async () => {
 			if (overrideMove) return;
 
-			zoom = map!.getZoom()
+			zoom = map!.getZoom();
 
 			const boundaries = map!.getBounds();
 			const sw = boundaries.getSouthWest();
